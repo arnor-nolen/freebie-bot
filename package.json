@@ -1,0 +1,31 @@
+{
+  "name": "freebie-bot",
+  "version": "0.0.1",
+  "description": "Discord bot for grabbing free games from Reddit",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arnor-nolen/freebie-bot.git"
+  },
+  "keywords": [
+    "freebie",
+    "bot",
+    "discord",
+    "reddit"
+  ],
+  "author": "arnor-nolen",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/arnor-nolen/freebie-bot/issues"
+  },
+  "homepage": "https://github.com/arnor-nolen/freebie-bot#readme",
+  "dependencies": {
+    "discord.js": "^12.3.1",
+    "dotenv": "^8.2.0",
+    "snoowrap": "^1.21.0"
+  }
+}
