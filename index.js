@@ -1,16 +1,20 @@
-import dotenv from "dotenv";
 import Snoowrap from "snoowrap";
 import Discord from "discord.js";
-
-dotenv.config();
+import {
+  DISCORD_BOT_TOKEN,
+  CLIENT_ID,
+  CLIENT_SECRET,
+  REDDIT_PASS,
+  REDDIT_USER,
+} from "./settings";
 
 const scrapeSubreddit = async () => {
   const r = new Snoowrap({
     userAgent: "freebie-bot",
-    clientId: process.env.CLIENT_ID,
-    clientSecret: process.env.CLIENT_SECRET,
-    username: process.env.REDDIT_USER,
-    password: process.env.REDDIT_PASS,
+    clientId: CLIENT_ID,
+    clientSecret: CLIENT_SECRET,
+    username: REDDIT_USER,
+    password: REDDIT_PASS,
   });
 
   const subreddit = await r.getSubreddit("GameDeals");
@@ -28,23 +32,29 @@ const scrapeSubreddit = async () => {
 
   const filter = /free/i;
 
-  data = data.filter((x) => filter.test(x.text));
-
-  return data;
+  return data.filter((x) => filter.test(x.text));
 };
 
-scrapeSubreddit().then((data) => {
-  console.log(data);
+const sendToDiscord = (data) => {
   const client = new Discord.Client();
 
   client.once("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
-    const channel = client.channels.cache.get("755888395326324737");
 
-    data.forEach((x) => {
-      channel.send(
-        x.text + "\nReddit score: " + x.score + "\n<" + x.link + ">"
+    // Get all guilds
+    const guilds = cilent.guilds;
+    guilds.forEach((x) => {
+      // Find channel named freebie-bot
+      const channel = guild.channels.cache.find(
+        (channel) => channel.name === "freebie-bot"
       );
+
+      // Post the data
+      data.forEach((x) => {
+        channel.send(
+          x.text + "\nReddit score: " + x.score + "\n<" + x.link + ">"
+        );
+      });
     });
   });
 
@@ -54,5 +64,7 @@ scrapeSubreddit().then((data) => {
     }
   });
 
-  client.login(process.env.DISCORD_BOT_TOKEN).then(() => {});
-});
+  client.login(DISCORD_BOT_TOKEN).then();
+};
+
+scrapeSubreddit().then(sendToDiscord);
