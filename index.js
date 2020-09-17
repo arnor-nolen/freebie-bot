@@ -29,13 +29,19 @@ const getNewFreebies = async () => {
   const lastTime = await getLastTime();
   const data = await scrapeSubreddit(lastTime);
   sendToDiscord(data);
+  const dateTime = new Date();
+  const dd = (dateTime.getDate() > 10 ? "" : "0") + dateTime.getDate();
+  const month = dateTime.getMonth() + 1;
+  const mm = (month > 10 ? "" : "0") + month;
+  const dateTimeString = `${dateTime.getFullYear()}-${mm}-${dd} ${dateTime.getHours()}:${dateTime.getMinutes()}:${dateTime.getSeconds()}`;
+  console.log(`[${dateTimeString}] Sent ${data.length} new items!`);
 };
 
 // Check that we're connected
 discordClient.once("ready", async () => {
   console.log(`Logged in Discord as ${discordClient.user.tag}!`);
   getNewFreebies();
-  setInterval(getNewFreebies, 10 * 60 * 1000);
+  setInterval(getNewFreebies, 1 * 60 * 1000);
 });
 
 // Discord PM functions
@@ -77,7 +83,9 @@ const findChannels = () => {
     const channel = x.channels.cache.find(
       (channel) => channel.name === "freebie-bot"
     );
-    channels.push(channel);
+    if (channel) {
+      channels.push(channel);
+    }
   });
   return channels;
 };
