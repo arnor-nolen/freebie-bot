@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "Discord bot for grabbing free games from Reddit",
   "main": "index.js",
-  "type": "module",
+  "type": "node",
   "scripts": {
     "start": "node .",
     "test": "echo \"Error: no test specified\" && exit 1"

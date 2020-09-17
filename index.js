@@ -1,70 +1,124 @@
-import Snoowrap from "snoowrap";
-import Discord from "discord.js";
-import {
+const Snoowrap = require("snoowrap");
+const Discord = require("discord.js");
+const {
   DISCORD_BOT_TOKEN,
   CLIENT_ID,
   CLIENT_SECRET,
   REDDIT_PASS,
   REDDIT_USER,
-} from "./settings";
+} = require("./settings");
 
-const scrapeSubreddit = async () => {
-  const r = new Snoowrap({
-    userAgent: "freebie-bot",
-    clientId: CLIENT_ID,
-    clientSecret: CLIENT_SECRET,
-    username: REDDIT_USER,
-    password: REDDIT_PASS,
-  });
+console.log(`Using reddit user ${REDDIT_USER}.`);
 
-  const subreddit = await r.getSubreddit("GameDeals");
-  const topPosts = await subreddit.getHot({ limit: 25 });
+// Initialize reddit client
+const redditClient = new Snoowrap({
+  userAgent: "freebie-bot",
+  clientId: CLIENT_ID,
+  clientSecret: CLIENT_SECRET,
+  username: REDDIT_USER,
+  password: REDDIT_PASS,
+});
 
-  let data = [];
+// Initialize discord client
+const discordClient = new Discord.Client();
 
-  topPosts.forEach((post) => {
-    data.push({
-      link: post.url,
-      text: post.title,
-      score: post.score,
-    });
-  });
+/**
+ * Main function to get new stuff
+ */
+const getNewFreebies = async () => {
+  const lastTime = await getLastTime();
+  const data = await scrapeSubreddit(lastTime);
+  sendToDiscord(data);
+};
+
+// Check that we're connected
+discordClient.once("ready", async () => {
+  console.log(`Logged in Discord as ${discordClient.user.tag}!`);
+  getNewFreebies();
+  setInterval(getNewFreebies, 10 * 60 * 1000);
+});
+
+// Discord PM functions
+discordClient.on("message", (msg) => {
+  if (msg.content === "ping") {
+    msg.reply("pong");
+  }
+});
+
+/**
+ * Get the data from reddit
+ */
+const scrapeSubreddit = async (lastTime) => {
+  const subreddit = await redditClient.getSubreddit("GameDeals");
+  const newPosts = await subreddit.getNew({ limit: 50 });
 
   const filter = /free/i;
 
-  return data.filter((x) => filter.test(x.text));
+  // Filter rules: not visited and contains regexp
+  let data = newPosts.filter((x) => {
+    const postDate = new Date(x.created_utc * 1000);
+    const isNewPost = lastTime ? postDate > lastTime : true;
+    return isNewPost && filter.test(x.title);
+  });
+  data = data.map((x) => ({ link: x.url, text: x.title, score: x.score }));
+  return data;
 };
 
+/**
+ * Find all discord channels associated with bot
+ *
+ */
+const findChannels = () => {
+  // Get all guilds
+  const guilds = discordClient.guilds.cache;
+  let channels = [];
+  guilds.forEach((x) => {
+    // Find channel named freebie-bot
+    const channel = x.channels.cache.find(
+      (channel) => channel.name === "freebie-bot"
+    );
+    channels.push(channel);
+  });
+  return channels;
+};
+
+/**
+ * Send data to discord
+ */
 const sendToDiscord = (data) => {
-  const client = new Discord.Client();
+  const channels = findChannels();
 
-  client.once("ready", () => {
-    console.log(`Logged in as ${client.user.tag}!`);
-
-    // Get all guilds
-    const guilds = cilent.guilds;
-    guilds.forEach((x) => {
-      // Find channel named freebie-bot
-      const channel = guild.channels.cache.find(
-        (channel) => channel.name === "freebie-bot"
+  // Post the data
+  channels.forEach((channel) => {
+    data.forEach((x) => {
+      channel.send(
+        x.text + "\nReddit score: " + x.score + "\n<" + x.link + ">"
       );
-
-      // Post the data
-      data.forEach((x) => {
-        channel.send(
-          x.text + "\nReddit score: " + x.score + "\n<" + x.link + ">"
-        );
-      });
     });
   });
-
-  client.on("message", (msg) => {
-    if (msg.content === "ping") {
-      msg.reply("pong");
-    }
-  });
-
-  client.login(DISCORD_BOT_TOKEN).then();
 };
 
-scrapeSubreddit().then(sendToDiscord);
+/**
+ * Send data to discord
+ */
+const getLastTime = async () => {
+  const channels = findChannels();
+  let promises = channels.map((x) => {
+    return x.messages.fetch({ limit: 1 });
+  });
+  return await Promise.all(promises).then((responses) => {
+    const dates = responses.reduce((acc, x) => {
+      if (x) {
+        x.forEach((d) => acc.push(d.createdAt));
+      }
+      return acc;
+    }, []);
+    // Find lastDate
+    if (dates.length == 0) {
+      return null;
+    }
+    return new Date(Math.max(...dates));
+  });
+};
+
+discordClient.login(DISCORD_BOT_TOKEN);
