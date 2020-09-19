@@ -99,9 +99,7 @@ const sendToDiscord = (data) => {
   // Post the data
   channels.forEach((channel) => {
     data.forEach((x) => {
-      channel.send(
-        x.text + "\nReddit score: " + x.score + "\n<" + x.link + ">"
-      );
+      channel.send(x.text + "\n<" + x.link + ">");
     });
   });
 };
