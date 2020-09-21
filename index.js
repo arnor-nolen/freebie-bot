@@ -58,13 +58,19 @@ const scrapeSubreddit = async (lastTime) => {
   const subreddit = await redditClient.getSubreddit("GameDeals");
   const newPosts = await subreddit.getNew({ limit: 50 });
 
-  const filter = /free/i;
+  const filters = [/free/i, /100%/i];
 
   // Filter rules: not visited and contains regexp
   let data = newPosts.filter((x) => {
     const postDate = new Date(x.created_utc * 1000);
     const isNewPost = lastTime ? postDate > lastTime : true;
-    return isNewPost && filter.test(x.title);
+    return (
+      isNewPost &&
+      filters.reduce((acc, d) => {
+        acc &= d.test(x.title);
+        return acc;
+      }, true)
+    );
   });
   data = data.map((x) => ({ link: x.url, text: x.title, score: x.score }));
   return data;
