@@ -58,7 +58,7 @@ const scrapeSubreddit = async (lastTime) => {
   const subreddit = await redditClient.getSubreddit("GameDeals");
   const newPosts = await subreddit.getNew({ limit: 50 });
 
-  const filters = [/free/i, /100%/i];
+  const filters = [/100%/i];
 
   // Filter rules: not visited and contains regexp
   let data = newPosts.filter((x) => {
