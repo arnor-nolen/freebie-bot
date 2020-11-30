@@ -6,6 +6,8 @@ const {
   CLIENT_SECRET,
   REDDIT_PASS,
   REDDIT_USER,
+  MODERATION_PERIOD,
+  SLEEP_PERIOD,
 } = require("./settings");
 
 console.log(`Using reddit user ${REDDIT_USER}.`);
@@ -29,34 +31,53 @@ const getNewFreebies = async () => {
   const lastTime = await getLastTime();
   const data = await scrapeSubreddit(lastTime);
   sendToDiscord(data);
-  const dateTime = new Date();
+  console.log(`[${formatDate(new Date())}] Sent ${data.length} new items!`);
+};
+
+const formatDate = (dateTime) => {
   const dd = (dateTime.getDate() > 10 ? "" : "0") + dateTime.getDate();
   const month = dateTime.getMonth() + 1;
   const mm = (month > 10 ? "" : "0") + month;
   const dateTimeString = `${dateTime.getFullYear()}-${mm}-${dd} ${dateTime.getHours()}:${dateTime.getMinutes()}:${dateTime.getSeconds()}`;
-  console.log(`[${dateTimeString}] Sent ${data.length} new items!`);
+  return dateTimeString;
 };
 
 // Check that we're connected
 discordClient.once("ready", async () => {
   console.log(`Logged in Discord as ${discordClient.user.tag}!`);
   getNewFreebies();
-  setInterval(getNewFreebies, 1 * 60 * 1000);
+  setInterval(getNewFreebies, SLEEP_PERIOD);
 });
 
 // Discord PM functions
 discordClient.on("message", (msg) => {
-  if (msg.content === "ping") {
-    msg.reply("pong");
+  let reply;
+  switch (msg.content) {
+    case "!ping":
+      reply = "Pong!";
+      break;
+    case "!setup":
+      reply = `Instructions:
+      1. Create a text channel named \`freebie-bot\`.
+      2. Add the bot to your server using <https://discord.com/oauth2/authorize?client_id=755888875171217589&permissions=68608&scope=bot>.
+      3. Make sure bot has the rights to read and write to this channel.`;
+      break;
+    default:
+      break;
+  }
+  if (reply) {
+    msg.reply(reply);
   }
 });
 
 /**
  * Get the data from reddit
  */
-const scrapeSubreddit = async (lastTime) => {
+const scrapeSubreddit = async (lastMessageTime) => {
+  // lastMessageTime can be null
+  let lastTime = lastMessageTime ? lastMessageTime - MODERATION_PERIOD : null;
   const subreddit = await redditClient.getSubreddit("GameDeals");
-  const newPosts = await subreddit.getNew({ limit: 50 });
+  const newPosts = await subreddit.getNew({ limit: 100 });
 
   const filters = [/100%/i, /free/i];
 
@@ -64,8 +85,10 @@ const scrapeSubreddit = async (lastTime) => {
   let data = newPosts.filter((x) => {
     const postDate = new Date(x.created_utc * 1000);
     const isNewPost = lastTime ? postDate > lastTime : true;
+    const isModerated = new Date() - postDate > MODERATION_PERIOD;
     return (
       isNewPost &&
+      isModerated &&
       filters.reduce((acc, d) => {
         acc &= d.test(x.title);
         return acc;
