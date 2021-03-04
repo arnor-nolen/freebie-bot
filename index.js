@@ -8,6 +8,8 @@ const {
   REDDIT_USER,
   MODERATION_PERIOD,
   SLEEP_PERIOD,
+  FILTERS,
+  BLACKLIST,
 } = require("./settings");
 
 console.log(`Using reddit user ${REDDIT_USER}.`);
@@ -79,8 +81,6 @@ const scrapeSubreddit = async (lastMessageTime) => {
   const subreddit = await redditClient.getSubreddit("GameDeals");
   const newPosts = await subreddit.getNew({ limit: 100 });
 
-  const filters = [/100%/i, /free/i];
-
   // Filter rules: not visited and contains regexp
   let data = newPosts.filter((x) => {
     const postDate = new Date(x.created_utc * 1000);
@@ -89,8 +89,14 @@ const scrapeSubreddit = async (lastMessageTime) => {
     return (
       isNewPost &&
       isModerated &&
-      filters.reduce((acc, d) => {
+      FILTERS.reduce((acc, d) => {
+        // Check if contains all of filters
         acc &= d.test(x.title);
+        return acc;
+      }, true) &&
+      BLACKLIST.reduce((acc, d) => {
+        // Check if doesn't contain any blacklisted words
+        acc &= !d.test(x.title);
         return acc;
       }, true)
     );

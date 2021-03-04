@@ -16,6 +16,18 @@ const SLEEP_PERIOD = 60 * 1000; // Time in ms
 // Allows to wait for the post to be moderated on Reddit.
 const MODERATION_PERIOD = 60 * 60 * 1000; // Time in ms
 
+// Result must include all of these strings
+const FILTERS = [/100%/i, /free/i];
+
+// Blacklist certain words from the results, use brackets to indicate a platform
+const BLACKLIST = [
+  /\[indiegala\]/i,
+  /\[indie gala\]/i,
+  /\[twitch\]/i,
+  /\[itch\.io\]/i,
+  /\[prime gaming\]/i,
+];
+
 module.exports = {
   CLIENT_ID,
   CLIENT_SECRET,
@@ -24,4 +36,6 @@ module.exports = {
   DISCORD_BOT_TOKEN,
   MODERATION_PERIOD,
   SLEEP_PERIOD,
+  FILTERS,
+  BLACKLIST,
 };
